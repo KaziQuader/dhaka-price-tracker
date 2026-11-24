@@ -109,14 +109,23 @@ def _pg_major(tool: str) -> int:
     return int(match.group(1)) if match else 0
 
 
-needs_pg16_tools = pytest.mark.skipif(
-    min(_pg_major("pg_dump"), _pg_major("pg_restore")) < 16,
-    reason="pg_dump/pg_restore 16+ not on PATH (the collector container has them)",
-)
+@pytest.fixture
+def pg_tools(db: Engine) -> None:
+    """Skip unless pg_dump and pg_restore have the server's major version.
+
+    Newer tools write settings an older server rejects (pg_dump 17 adds
+    `SET transaction_timeout`, unknown to Postgres 16), so "16 or newer" is not enough.
+    Production is safe: the collector image pins postgresql-client-16 to match the server.
+    """
+    with db.connect() as conn:
+        server = int(conn.scalar(text("SHOW server_version_num"))) // 10000
+    tools = {_pg_major("pg_dump"), _pg_major("pg_restore")}
+    if tools != {server}:
+        pytest.skip(f"needs pg_dump/pg_restore {server} on PATH (found {sorted(tools)})")
 
 
 @pytest.mark.db
-@needs_pg16_tools
+@pytest.mark.usefixtures("pg_tools")
 def test_dump_and_restore_round_trip(db: Engine, test_db_url, tmp_path: Path) -> None:
     settings = Settings(
         _env_file=None,
@@ -145,7 +154,7 @@ def test_dump_and_restore_round_trip(db: Engine, test_db_url, tmp_path: Path) ->
 
 
 @pytest.mark.db
-@needs_pg16_tools
+@pytest.mark.usefixtures("pg_tools")
 def test_failed_dump_leaves_no_file(tmp_path: Path) -> None:
     settings = Settings(_env_file=None, postgres_host="localhost", postgres_port=1)
     with pytest.raises(RuntimeError, match="pg_dump failed"):
