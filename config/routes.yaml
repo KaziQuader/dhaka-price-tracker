@@ -1,0 +1,19 @@
+# Fare search grid (IMPLEMENTATION_PLAN.md §6). Prices are queried from a Dhaka point of view.
+origin: DAC
+currency: BDT
+country: BD
+adults: 1
+cabin: economy
+trip_type: return
+nights: 7
+horizon_days: 120
+depart_weekdays: [TUE, FRI]          # Google Flights grid
+routes:
+  - { destination: HAN, label: Hanoi }
+  - { destination: BKK, label: Bangkok }
+  - { destination: MNL, label: Manila }
+  - { destination: VTE, label: Vientiane }
+  # - { destination: SGN, label: Ho Chi Minh City }   # optional fifth
+light_grid:                           # ShareTrip, GoZayaan
+  depart_weekdays: [TUE]
+  horizon_days: 90

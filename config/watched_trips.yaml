@@ -1,0 +1,11 @@
+# Trips with a target price. An email is sent when the cheapest matching fare falls below
+# target_bdt, or drops at least 5% since the last run (ticket F6).
+#
+# Example:
+# - name: Laos autumn 2027
+#   origin: DAC
+#   destination: VTE
+#   depart_between: [2027-10-24, 2027-11-15]
+#   nights: 6-8
+#   target_bdt: 50000
+[]
