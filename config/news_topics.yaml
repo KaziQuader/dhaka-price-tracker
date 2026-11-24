@@ -1,0 +1,8 @@
+# GDELT DOC 2.0 queries, one per topic (ticket C2). The exact query strings are tuned in C2.
+topics:
+  - { name: gold, query: "gold price" }
+  - { name: fed, query: "Federal Reserve" }
+  - { name: conflict, query: "war OR conflict" }
+  - { name: oil, query: "oil price" }
+  - { name: bd_politics, query: "Bangladesh politics" }
+  - { name: aviation, query: "aviation OR airport" }

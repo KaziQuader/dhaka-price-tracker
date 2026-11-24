@@ -1,0 +1,7 @@
+# Store text files with LF line endings. The code runs in Linux containers and CI,
+# where CRLF breaks shell scripts and Makefile recipes.
+* text=auto eol=lf
+
+*.png binary
+*.gz binary
+*.dump binary

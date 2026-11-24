@@ -1,0 +1,25 @@
+# Secrets
+.env
+
+# Collected data and backups (never committed)
+data/raw/
+data/outbox/
+backups/
+
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+
+# dbt
+dbt/target/
+dbt/logs/
+dbt/dbt_packages/
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

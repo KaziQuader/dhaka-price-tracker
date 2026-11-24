@@ -1,0 +1,10 @@
+# Per-source settings: enable flag, politeness and URLs. Filled in as each collector is built.
+# The orchestrator runs enabled sources in the order listed here.
+#
+# Shape of an entry:
+#   <source_name>:
+#     enabled: true
+#     min_interval_s: 5      # minimum seconds between requests to this source's domain
+#     urls:
+#       <name>: https://...
+sources: {}
