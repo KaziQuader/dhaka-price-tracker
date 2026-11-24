@@ -51,8 +51,8 @@ Tests use a separate `tracker_test` database and never touch the real data.
 | `make format` | ruff auto-fix and format | ready |
 | `make up` / `make down` | Start / stop Postgres and Metabase | ready |
 | `make migrate` | Run Alembic migrations | ready |
-| `make collect` | Full daily run (`SOURCES=a,b` for a subset) | T0.3 |
-| `make reparse SOURCE=x SINCE=YYYY-MM-DD` | Re-parse stored raw snapshots | T0.3 |
+| `make collect` | Full daily run (`SOURCES=a,b` for a subset) | ready |
+| `make reparse SOURCE=x SINCE=YYYY-MM-DD` | Re-parse stored raw snapshots | ready |
 | `make backup` / `make restore FILE=...` | `pg_dump` / restore | T0.4 |
 | `make backfill-gold` | One-off gold history backfill | G3 |
 | `make dbt` | `dbt run && dbt test` | G6 |
@@ -70,4 +70,28 @@ Run `make` with no target to list them.
 | `config/watched_trips.yaml` | Trips with target prices for alerts |
 | `config/news_topics.yaml` | GDELT news queries |
 
-`EMAIL_DRY_RUN=1` writes emails to `data/outbox/` instead of sending them.
+`EMAIL_DRY_RUN=1` (the default) writes emails to `data/outbox/` instead of sending them. To send
+real mail, put a Gmail [app password](https://myaccount.google.com/apppasswords) in
+`SMTP_APP_PASSWORD`, set `ALERT_TO`, and set `EMAIL_DRY_RUN=0`.
+
+## How a daily run works
+
+`make collect` runs `python -m tracker.orchestrator` in the collector container:
+
+1. Starts a row in `raw.run_log`.
+2. Runs each enabled source in `config/sources.yaml`, in file order. Each collector fetches pages
+   through the shared client, which adds a polite per-domain delay and retries, saves every response
+   gzipped under `data/raw/<source>/<Dhaka date>/`, and logs it in `raw.fetch_log`. The collector
+   then parses and loads the rows. One failing source never stops the others.
+3. Runs the later steps (dbt, scoring, alerts, backup). Each is skipped until its ticket exists.
+4. Marks the run `ok`, `partial` or `failed` and emails a summary.
+
+`SOURCES=dummy` runs a named source even if it's disabled. `dummy` fetches `example.com` and
+exists only to check the pipeline end to end:
+
+```bash
+make collect SOURCES=dummy
+```
+
+Because raw responses are kept, a parser fix can be applied to past data without fetching again:
+`make reparse SOURCE=goldr SINCE=2026-11-01`.

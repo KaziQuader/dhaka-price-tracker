@@ -6,6 +6,7 @@ sets `POSTGRES_HOST=localhost` for tests.
 """
 
 from functools import lru_cache
+from pathlib import Path
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from sqlalchemy import URL
@@ -19,6 +20,20 @@ class Settings(BaseSettings):
     postgres_db: str = "tracker"
     postgres_host: str = "localhost"
     postgres_port: int = 5432
+
+    smtp_host: str = "smtp.gmail.com"
+    smtp_port: int = 587
+    smtp_user: str = ""
+    smtp_app_password: str = ""
+    alert_to: str = ""
+    # Safe default: write emails to data/outbox/ unless sending is switched on explicitly.
+    email_dry_run: bool = True
+
+    tz_display: str = "Asia/Dhaka"
+
+    # Relative to the working directory: the repo root on the host, /app in the container.
+    data_dir: Path = Path("data")
+    config_dir: Path = Path("config")
 
     def database_url(self, database: str | None = None) -> URL:
         """SQLAlchemy URL for psycopg 3. `database` overrides the configured DB name."""

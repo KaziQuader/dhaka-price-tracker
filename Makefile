@@ -46,20 +46,25 @@ down: ## Stop Postgres and Metabase (data volumes are kept)
 migrate: env-check ## Run Alembic migrations in the collector container
 	docker compose run --rm --build collector alembic upgrade head
 
+# The collector container sees ./config, ./data and ./backups as volumes, so config edits
+# need no rebuild; code edits are picked up by --build (cached, a few seconds).
+COLLECTOR := docker compose run --rm --build collector
+
+collect: env-check ## Full daily run (SOURCES=a,b for a subset)
+	$(COLLECTOR) python -m tracker.orchestrator $(if $(SOURCES),--sources $(SOURCES))
+
+reparse: env-check ## Re-parse raw snapshots (SOURCE=x SINCE=YYYY-MM-DD)
+	@test -n "$(SOURCE)" -a -n "$(SINCE)" || { echo "usage: make reparse SOURCE=x SINCE=YYYY-MM-DD"; exit 1; }
+	$(COLLECTOR) python -m tracker.reparse --source $(SOURCE) --since $(SINCE)
+
 # ---- Not implemented yet (each stub names the ticket that builds it) --------
 
 define todo
 	@echo "make $@: not implemented yet (ticket $(1))"; exit 1
 endef
 
-collect: ## Full daily run (SOURCES=a,b for a subset)
-	$(call todo,T0.3)
-
 backfill-gold: ## One-off gold history backfill
 	$(call todo,G3)
-
-reparse: ## Re-parse raw snapshots (SOURCE=x SINCE=YYYY-MM-DD)
-	$(call todo,T0.3)
 
 dbt: ## dbt run && dbt test
 	$(call todo,G6)

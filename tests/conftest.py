@@ -66,3 +66,11 @@ def migrated_engine(test_db_url: URL, alembic_cfg: Config) -> Iterator[Engine]:
     engine = create_engine(test_db_url)
     yield engine
     engine.dispose()
+
+
+@pytest.fixture
+def db(migrated_engine: Engine) -> Engine:
+    """The migrated test database with the run/fetch/alert logs emptied before the test."""
+    with migrated_engine.begin() as conn:
+        conn.execute(text("TRUNCATE raw.fetch_log, raw.run_log, raw.alert_log"))
+    return migrated_engine
