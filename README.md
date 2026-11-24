@@ -53,7 +53,9 @@ Tests use a separate `tracker_test` database and never touch the real data.
 | `make migrate` | Run Alembic migrations | ready |
 | `make collect` | Full daily run (`SOURCES=a,b` for a subset) | ready |
 | `make reparse SOURCE=x SINCE=YYYY-MM-DD` | Re-parse stored raw snapshots | ready |
-| `make backup` / `make restore FILE=...` | `pg_dump` / restore | T0.4 |
+| `make backup` | `pg_dump` to `backups/daily/` and rotate (also runs at the end of `make collect`) | ready |
+| `make restore FILE=backups/...` | Replace the database with a dump (asks you to confirm) | ready |
+| `make verify-backup` | Dump, restore into a throwaway Postgres, compare row counts | ready |
 | `make backfill-gold` | One-off gold history backfill | G3 |
 | `make dbt` | `dbt run && dbt test` | G6 |
 | `make backtest` | Backtests for rules and models | P1 |
@@ -95,3 +97,19 @@ make collect SOURCES=dummy
 
 Because raw responses are kept, a parser fix can be applied to past data without fetching again:
 `make reparse SOURCE=goldr SINCE=2026-11-01`.
+
+## Backups
+
+Every run ends with a `pg_dump -Fc` into `backups/` (git-ignored):
+
+| Folder | Holds | Kept |
+|---|---|---|
+| `backups/daily/` | One dump per run, `tracker_<YYYYMMDD>_<HHMMSS>.dump` (Dhaka time) | Newest 14 |
+| `backups/weekly/` | A copy of the first dump of each week | Newest 8 |
+| `backups/pre-restore/` | The database as it was just before each `make restore` | All (delete by hand) |
+
+Fare history can't be collected again, so **copy `backups/weekly/` off this machine now and
+then** (cloud drive or USB). Backups on the same disk don't survive a disk failure.
+
+To restore, pick a file and run `make restore FILE=backups/daily/<name>.dump`. Run
+`make verify-backup` once in a while: it proves the newest dump really restores.

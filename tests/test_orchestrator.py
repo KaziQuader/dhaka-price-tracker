@@ -13,7 +13,7 @@ from tracker.collectors import dummy
 from tracker.core import email
 from tracker.core.config import SourceConfig, SourcesConfig
 from tracker.core.settings import Settings
-from tracker.orchestrator import StepSkipped, run, summary_email
+from tracker.orchestrator import DEFAULT_STEPS, StepSkipped, run, summary_email
 from tracker.reparse import reparse
 
 pytestmark = pytest.mark.db
@@ -54,8 +54,16 @@ def counts(engine: Engine) -> tuple[int, int]:
 
 
 def test_dummy_run_end_to_end(db: Engine, settings: Settings, client: httpx.Client) -> None:
+    # The real backup step would pg_dump whatever database `settings` points at; the
+    # round trip itself is tested in test_backup.py.
+    steps = DEFAULT_STEPS | {"backup": lambda _ctx: "tracker_x.dump (0.1 MB)"}
     report = run(
-        settings=settings, engine=db, sources_config=SOURCES, requested=["dummy"], client=client
+        settings=settings,
+        engine=db,
+        sources_config=SOURCES,
+        requested=["dummy"],
+        steps=steps,
+        client=client,
     )
     email_path = email.send(summary_email(report), settings)
 
@@ -79,8 +87,9 @@ def test_dummy_run_end_to_end(db: Engine, settings: Settings, client: httpx.Clie
         "dbt": "skipped",
         "score": "skipped",
         "alerts": "skipped",
-        "backup": "skipped",
+        "backup": "ok",
     }
+    assert "OK      backup: tracker_x.dump (0.1 MB)" in body
 
 
 def test_one_failing_collector_does_not_stop_the_others(

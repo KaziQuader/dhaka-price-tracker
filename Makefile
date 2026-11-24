@@ -15,7 +15,7 @@ endif
 # Subset of collectors for `make collect SOURCES=a,b`; empty means all enabled ones.
 SOURCES ?=
 
-.PHONY: help env-check test lint format up down migrate collect backfill-gold reparse dbt backtest backup restore
+.PHONY: help env-check test lint format up down migrate collect backfill-gold reparse dbt backtest backup restore verify-backup
 
 help: ## List targets
 	@grep -E '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  %-15s %s\n", $$1, $$2}'
@@ -57,6 +57,21 @@ reparse: env-check ## Re-parse raw snapshots (SOURCE=x SINCE=YYYY-MM-DD)
 	@test -n "$(SOURCE)" -a -n "$(SINCE)" || { echo "usage: make reparse SOURCE=x SINCE=YYYY-MM-DD"; exit 1; }
 	$(COLLECTOR) python -m tracker.reparse --source $(SOURCE) --since $(SINCE)
 
+backup: env-check ## pg_dump to backups/daily/ and rotate (make collect does this too)
+	$(COLLECTOR) python -m tracker.core.backup dump
+
+# FILE is a path under backups/, e.g. backups/daily/tracker_20261124_183022.dump. The current
+# database is dumped to backups/pre-restore/ first, so a wrong restore can be undone.
+restore: env-check ## Replace the database with a dump (FILE=backups/...)
+	@test -f "$(FILE)" || { echo "usage: make restore FILE=backups/daily/<name>.dump"; exit 1; }
+	@case "$(FILE)" in backups/*) ;; *) echo "FILE must be under backups/ (the container sees only that folder)"; exit 1;; esac
+	@read -r -p "This replaces ALL data in the database with $(FILE). Type 'restore' to continue: " answer; \
+	  test "$$answer" = restore || { echo "Cancelled."; exit 1; }
+	$(COLLECTOR) python -m tracker.core.backup restore "$(FILE)"
+
+verify-backup: env-check ## Dump now, restore into a throwaway Postgres, compare row counts
+	bash scripts/verify_backup.sh
+
 # ---- Not implemented yet (each stub names the ticket that builds it) --------
 
 define todo
@@ -71,9 +86,3 @@ dbt: ## dbt run && dbt test
 
 backtest: ## Run backtests for all rules and models
 	$(call todo,P1)
-
-backup: ## pg_dump the database
-	$(call todo,T0.4)
-
-restore: ## Restore a dump (FILE=...)
-	$(call todo,T0.4)
