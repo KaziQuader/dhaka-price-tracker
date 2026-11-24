@@ -5,7 +5,13 @@ description = "Local tracker and predictor for BAJUS gold prices and airfares fr
 readme = "README.md"
 requires-python = ">=3.12,<3.13"
 # Runtime dependencies are added by the ticket that first needs them (see IMPLEMENTATION_PLAN.md §3).
-dependencies = []
+dependencies = [
+    "alembic>=1.20.1",
+    "playwright>=1.65.2",
+    "psycopg[binary]>=3.2",
+    "pydantic-settings>=2.16.3",
+    "sqlalchemy>=2",
+]
 
 [dependency-groups]
 dev = [

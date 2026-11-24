@@ -26,7 +26,21 @@ source ~/.bashrc
 
 uv sync                  # creates .venv with Python 3.12 and the dev tools
 cp .env.example .env     # then fill in the values
+make up                  # start Postgres and Metabase (first time: downloads images)
+make migrate             # build the collector image (first time: ~5 min) and create tables
+make test
 ```
+
+### Services
+
+| Service | Address | Notes |
+|---|---|---|
+| Postgres 16 | `localhost:5433` (from the host), `postgres:5432` (inside compose) | Host port 5433 avoids clashing with a local Postgres on 5432 |
+| Metabase | http://localhost:3000 | First visit: create the admin user, then add the database with host `postgres`, port `5432` and the credentials from `.env` |
+| collector | `docker compose run --rm collector <command>` | Python, Playwright Chromium and `pg_dump` 16; only runs on demand |
+
+Data lives in the Docker volumes `pgdata` and `mbdata`; `make down` keeps them.
+Tests use a separate `tracker_test` database and never touch the real data.
 
 ## Make targets
 
@@ -35,8 +49,8 @@ cp .env.example .env     # then fill in the values
 | `make test` | Run pytest | ready |
 | `make lint` | ruff lint and format check | ready |
 | `make format` | ruff auto-fix and format | ready |
-| `make up` / `make down` | Start / stop Postgres and Metabase | T0.2 |
-| `make migrate` | Run Alembic migrations | T0.2 |
+| `make up` / `make down` | Start / stop Postgres and Metabase | ready |
+| `make migrate` | Run Alembic migrations | ready |
 | `make collect` | Full daily run (`SOURCES=a,b` for a subset) | T0.3 |
 | `make reparse SOURCE=x SINCE=YYYY-MM-DD` | Re-parse stored raw snapshots | T0.3 |
 | `make backup` / `make restore FILE=...` | `pg_dump` / restore | T0.4 |
