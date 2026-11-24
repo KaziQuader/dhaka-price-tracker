@@ -1,5 +1,6 @@
-# Per-source settings: enable flag, politeness and URLs. Filled in as each collector is built.
-# The orchestrator runs enabled sources in the order listed here.
+# Per-source settings: enable flag, politeness and URLs.
+# The orchestrator runs enabled sources in the order listed here. The key is also the
+# collector module name: `dummy` -> src/tracker/collectors/dummy.py.
 #
 # Shape of an entry:
 #   <source_name>:
@@ -7,4 +8,10 @@
 #     min_interval_s: 5      # minimum seconds between requests to this source's domain
 #     urls:
 #       <name>: https://...
-sources: {}
+sources:
+  # Pipeline check only (T0.3). Run with `make collect SOURCES=dummy`.
+  dummy:
+    enabled: false
+    min_interval_s: 1
+    urls:
+      page: https://example.com/

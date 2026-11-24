@@ -27,15 +27,23 @@ RUN apt-get update \
 
 WORKDIR /app
 
-# Dependencies first (cached until pyproject.toml or uv.lock change), then the browser.
-COPY pyproject.toml uv.lock README.md ./
-RUN uv sync --locked --no-dev --no-install-project
+# The browser comes before the Python dependencies, so adding a dependency (which changes
+# uv.lock) doesn't reinstall Chromium. It only reinstalls when this version changes.
+# Keep it equal to playwright's version in uv.lock; the check below fails the build otherwise.
+ARG PLAYWRIGHT_VERSION=1.65.2
 # Playwright's bundled Node.js needs libatomic1, which the slim image lacks; --with-deps
 # can't add it because Node must start before it installs anything.
 RUN apt-get update \
  && apt-get install -y --no-install-recommends libatomic1 \
  && rm -rf /var/lib/apt/lists/* \
- && playwright install --with-deps chromium
+ && uvx --no-cache --from "playwright==${PLAYWRIGHT_VERSION}" playwright install --with-deps chromium
+
+# Dependencies next (cached until pyproject.toml or uv.lock change).
+COPY pyproject.toml uv.lock README.md ./
+RUN uv sync --locked --no-dev --no-install-project
+RUN test "$(python -c 'import importlib.metadata as m; print(m.version("playwright"))')" \
+      = "${PLAYWRIGHT_VERSION}" \
+ || { echo "PLAYWRIGHT_VERSION in Dockerfile does not match uv.lock" >&2; exit 1; }
 
 # Project code last, so code edits rebuild only this layer.
 COPY alembic.ini ./
